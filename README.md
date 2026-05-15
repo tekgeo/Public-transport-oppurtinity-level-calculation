@@ -44,7 +44,7 @@ on foot*, not service quality.
 ### Step-by-step
 
 **Boundary.** A shapefile of the study area in EPSG:4326 (or any defined
-CRS — it gets reprojected). The H3 grid is generated to cover the union
+CRS  it gets reprojected). The H3 grid is generated to cover the union
 of its polygons and then clipped at the border.
 
 **H3 grid.** Resolution 9 produces ~0.1 km² hexes, roughly 360 m across.
