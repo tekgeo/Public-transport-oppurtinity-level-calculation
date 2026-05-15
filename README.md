@@ -3,8 +3,7 @@ Public Transport Opportunity Level (PTOL) for Milan on an H3 hex grid, computed 
 
 `PTOL_CALCULATION.py` computes a Public Transport Opportunity Level
 (PTOL) for the Città Metropolitana di Milano on an H3 hexagonal grid.
-The methodology is adapted from the Transform Transport Foundation's
-PTOL work for the Metropolitan City of Rome.
+
 
 ## What PTOL measures
 
