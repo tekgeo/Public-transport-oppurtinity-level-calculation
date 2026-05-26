@@ -4,8 +4,6 @@ Public Transport Opportunity Level (PTOL) for Milan on an H3 hex grid, computed 
 `PTOL_CALCULATION.py` computes a Public Transport Opportunity Level
 (PTOL) for the Città Metropolitana di Milano on an H3 hexagonal grid.
 
-Methodological basis and data sources
-
 This PTOL calculation was developed as an adaptation of the methodological approach used by Transform Transport for measuring sustainable urban mobility and public transport opportunity. In particular, it is inspired by the Rome case study, where Transform Transport computed the Public Transport Opportunity Level (PTOL) as one of the key indicators to evaluate pedestrian accessibility to public transport stops, together with other urban mobility metrics such as the 15-Minute City Score and the Bicycle Level of Traffic Stress. That study also uses an H3 hexagonal grid and open-source geospatial data to support reproducible and spatially comparable urban mobility analysis.
 
 In this repository, the methodology was adapted to the Città Metropolitana di Milano by computing PTOL on an H3 grid using walking isochrones over the pedestrian network. Unlike PTAL, this implementation does not include GTFS frequencies, waiting times, or service quality. Instead, it focuses on the opportunity to access different public transport modes on foot within predefined walking-time thresholds. This makes PTOL a simpler and scalable screening indicator for identifying areas with stronger or weaker pedestrian access to public transport.
