@@ -4,18 +4,25 @@ Public Transport Opportunity Level (PTOL) for Milan on an H3 hex grid, computed 
 `PTOL_CALCULATION.py` computes a Public Transport Opportunity Level
 (PTOL) for the Città Metropolitana di Milano on an H3 hexagonal grid.
 
+Methodological basis and data sources
+
+This PTOL calculation was developed as an adaptation of the methodological approach used by Transform Transport for measuring sustainable urban mobility and public transport opportunity. In particular, it is inspired by the Rome case study, where Transform Transport computed the Public Transport Opportunity Level (PTOL) as one of the key indicators to evaluate pedestrian accessibility to public transport stops, together with other urban mobility metrics such as the 15-Minute City Score and the Bicycle Level of Traffic Stress. That study also uses an H3 hexagonal grid and open-source geospatial data to support reproducible and spatially comparable urban mobility analysis.
+
+In this repository, the methodology was adapted to the Città Metropolitana di Milano by computing PTOL on an H3 grid using walking isochrones over the pedestrian network. Unlike PTAL, this implementation does not include GTFS frequencies, waiting times, or service quality. Instead, it focuses on the opportunity to access different public transport modes on foot within predefined walking-time thresholds. This makes PTOL a simpler and scalable screening indicator for identifying areas with stronger or weaker pedestrian access to public transport.
+
+The pedestrian network used for the walking isochrone calculation was derived from OpenStreetMap through OSMnx. OpenStreetMap is used as an open geospatial data source for pedestrian network extraction, following proper attribution requirements for OSM-based research and mapping outputs.
 
 ## What PTOL measures
 
 For each hex cell, PTOL counts **how many public transport modes are
 accessible on foot within a mode-specific walking time**:
 
-| Mode    | Walking-time threshold |
-|---------|------------------------|
-| Bus     | 8 min                  |
-| Tram    | 8 min                  |
-| Metro   | 12 min                 |
-| Railway | 12 min                 |
+  Mode      Walking-time threshold 
+
+  Bus       8 min                  
+  Tram      8 min                  
+  Metro     12 min                 
+  Railway   12 min                 
 
 A walking speed of 80 m/min (4.8 km/h) is used throughout, matching the
 PTAL convention. A hex is "accessible to mode X" when a configurable
@@ -130,7 +137,7 @@ ox.save_graphml(G, "Data/citta_metropolitana_milano_walk_network.graphml")
 ## Outputs
 
 | File                                       | Content |
-|--------------------------------------------|---------|
+
 | `PTOL_MILAN_H3R9_final.gpkg`               | H3 grid in EPSG:3035 with all attributes |
 | `PTOL_MILAN_H3R9_FINAL.csv`                | Same attributes, no geometry |
 | `PTOL_MILAN_H3R9_isochrones.gpkg`          | One polygon per mode (the input to step 5's intersection) |
@@ -138,7 +145,7 @@ ox.save_graphml(G, "Data/citta_metropolitana_milano_walk_network.graphml")
 ### Key columns in the hex output
 
 | Column                  | Meaning |
-|-------------------------|---------|
+
 | `h3_index`              | H3 cell ID |
 | `clat`, `clon`          | Cell centroid (lat/lon) |
 | `area_km2`              | Cell area after clipping to boundary |
@@ -157,7 +164,7 @@ All knobs are at the top of the script. The ones most likely to be
 adjusted:
 
 | Variable                   | Default | What it does |
-|----------------------------|---------|--------------|
+
 | `H3_RESOLUTION`            | 9       | Cell size. Use 10 for ~6× more cells and finer detail. |
 | `MODE_CONFIG[*]["max_time_min"]` | 8 / 12 | Walking thresholds per mode. |
 | `EDGE_BUFFER_M`            | 25      | Half-width of the walkable corridor around each reached edge. |
@@ -167,7 +174,7 @@ adjusted:
 | `MAX_SNAP_DISTANCE_M`      | 100     | Stops farther than this from any pedestrian node are dropped. |
 | `MIN_HEX_OVERLAP_FRACTION` | 0.25    | 0 = any intersection makes a hex accessible; 0.5 = majority. |
 
-## Methodological notes and caveats
+## Methodological notes 
 
 - **No frequency weighting.** A hex with metro access (3-min headways) and
   one with railway access (60-min headways) both score 1 on that mode.
@@ -196,27 +203,9 @@ adjusted:
   the isochrone by 1 m² counts); centroid-only is too strict in border
   cells; 25–50 % area overlap is a reasonable default for H3 res 9.
 
-## Dependencies
 
-```bash
-pip install "osmnx>=2" "networkx>=3" "geopandas>=0.14" "h3>=4" \
-            shapely numpy pandas pyogrio scipy
-```
+References
 
-`osmnx` v1 also works (the compatibility shims `load_graphml_compat`
-and `project_graph_compat` cover both APIs). `scipy >= 1.6` is
-recommended for the KD-tree `output_type="ndarray"` shortcut, but the
-script falls back to the set-based API automatically.
+OpenStreetMap contributors (2026) OpenStreetMap. Open geospatial data used for pedestrian network extraction.
 
-## Running
-
-Edit the paths in the configuration block to point at your data, then:
-
-```bash
-python PTOL_CALCULATION.py
-```
-
-Typical runtime for the Città Metropolitana di Milano at H3 resolution
-9 with ~10–15 k stops is in the order of minutes on a laptop. Most of
-the time is in the per-mode buffer-and-union step; lower
-`EDGE_BUFFER_RESOLUTION` if it becomes a bottleneck.
+Transform Transport (2025) Sustainable Urban Mobility Metrics in the Metropolitan City of Rome. Transform Transport, 27 June 2025.
