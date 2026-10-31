@@ -24,7 +24,6 @@ from shapely.ops import substring
 
 
 #paths and CRS 
-
 CRS_WGS84  = "EPSG:4326"
 CRS_METRIC = "EPSG:3035"  # LAEA Europe, equal-area, meters
 
@@ -38,14 +37,12 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 MILAN_BOUNDARY    = os.path.join(SHAPES_DIR, "Citta Metropolitana di Milano.shp")
 WALK_NETWORK_FILE = os.path.join(DATA_DIR, "citta_metropolitana_milano_walk_network.graphml")
 
-# One point layer per PT mode. Comment out any line for a mode you don't have.
 STOPS_FILES = {
     "Bus":     os.path.join(DATA_DIR, "bus_stops.shp"),
     "Tram":    os.path.join(DATA_DIR, "tram_stops.shp"),
     "Metro":   os.path.join(DATA_DIR, "metro_stations.shp"),
     "Railway": os.path.join(DATA_DIR, "railway_stations.shp"),
 }
-
 
 #analysis parameters 
 
@@ -61,10 +58,10 @@ MODE_CONFIG = {
 }
 
 # Isochrone polygon: each reached edge is buffered and unioned.
-EDGE_BUFFER_M          = 25      # half-width of the walkable corridor
-EDGE_BUFFER_RESOLUTION = 4       # octagon buffer; faster union, no visible loss at 25 m
-SMALL_HOLE_AREA_M2     = 5_000   # fill holes <= this (m²) - inner courtyards;
-                                 # larger gaps (parks, water) remain holes
+EDGE_BUFFER_M          = 25      
+EDGE_BUFFER_RESOLUTION = 4       
+SMALL_HOLE_AREA_M2     = 5_000   
+                                
 
 # Stop deduplication (clusters of points closer than tolerance get collapsed).
 DEDUPLICATE_STOPS = True
@@ -73,13 +70,10 @@ DEDUP_TOLERANCE_M = 5
 # Stops more than this far from any pedestrian node are dropped as data errors.
 MAX_SNAP_DISTANCE_M = 100
 
-# A hex counts as "accessible" if at least this fraction of its area falls
-# inside the isochrone. 0 = any intersection, 0.5 = majority.
+
 MIN_HEX_OVERLAP_FRACTION = 0.25
 
 # helpers
-
-
 def read_vector_checked(filepath, target_crs=None, layer_name="vector layer"):
     gdf = gpd.read_file(filepath)
     if gdf.crs is None:
@@ -93,8 +87,6 @@ def read_vector_checked(filepath, target_crs=None, layer_name="vector layer"):
 
 
 def union_geometries(gdf_or_geoseries):
-    # union_all() is the modern method; fall back to unary_union on older
-    # geopandas versions.
     geoms = (
         gdf_or_geoseries.geometry
         if hasattr(gdf_or_geoseries, "geometry")
@@ -106,7 +98,6 @@ def union_geometries(gdf_or_geoseries):
 
 
 def ensure_point_geometry(gdf):
-    # If the layer is polygons (stations as buildings, etc.), use centroids.
     gdf = gdf[gdf.geometry.notna() & ~gdf.geometry.is_empty].copy()
     if gdf.empty:
         return gdf
@@ -160,7 +151,6 @@ def project_graph_compat(G, target_crs):
 
 
 def add_walk_time_to_edges(G):
-    # Each edge gets walk_time_s = length_m / walk_speed.
     iterator = (
         G.edges(data=True, keys=True) if G.is_multigraph() else G.edges(data=True)
     )
@@ -172,8 +162,6 @@ def add_walk_time_to_edges(G):
 
 
 def to_undirected_safe(G):
-    # OSMnx returns a MultiDiGraph; for Dijkstra we want a simple undirected
-    # graph keeping the lightest valid edge per node pair.
     H = nx.Graph()
     for node, data in G.nodes(data=True):
         H.add_node(node, **data)
@@ -221,7 +209,7 @@ def deduplicate_stops_by_mode(stops_gdf, tolerance_m=5):
             continue
 
         tree = cKDTree(coords)
-        # output_type="ndarray" needs scipy >= 1.6; older versions return a set.
+    
         try:
             pairs = tree.query_pairs(r=tolerance_m, output_type="ndarray")
         except TypeError:
@@ -238,7 +226,7 @@ def deduplicate_stops_by_mode(stops_gdf, tolerance_m=5):
             keep_mask[idx] = True
             continue
 
-        # Build a sparse graph from the close-pair list, then label clusters.
+   
         n = len(coords)
         rows = np.concatenate([pairs[:, 0], pairs[:, 1]])
         cols = np.concatenate([pairs[:, 1], pairs[:, 0]])
@@ -256,8 +244,6 @@ def deduplicate_stops_by_mode(stops_gdf, tolerance_m=5):
 
 
 def remove_small_holes(geom, max_hole_area_m2):
-    # Only fill interior rings up to a size threshold. Big legitimate gaps
-    # (parks, water, non-walkable land) are kept as actual holes.
     if geom is None or geom.is_empty or max_hole_area_m2 <= 0:
         return geom
     if geom.geom_type == "Polygon":
@@ -274,7 +260,6 @@ def remove_small_holes(geom, max_hole_area_m2):
 
 
 def classify_stop_count(n_stops):
-    # Descriptive band for stop density (NOT the PTOL output).
     if n_stops <= 0:    return "0 - No stops"
     elif n_stops <= 2:  return "1 - Very low"
     elif n_stops <= 4:  return "2 - Low"
@@ -292,8 +277,6 @@ def classify_ptol_modes(n_modes):
 
 
 def generate_catchment_distances(G, stop_nodes, max_time_s):
-    # Multi-source Dijkstra with a time cutoff. Returns {node: walk_time_s}
-    # for every node reachable from at least one stop within max_time_s.
     valid_sources = {n for n in stop_nodes if n in G}
     if not valid_sources:
         return {}
@@ -303,10 +286,6 @@ def generate_catchment_distances(G, stop_nodes, max_time_s):
 
 
 def _partial_from_endpoint(line, frac, endpoint_xy):
-    # Return the portion of `line` of normalized length `frac` starting from
-    # whichever line endpoint sits closer to `endpoint_xy`. The (u,v) order
-    # in NetworkX may not match the LineString's stored direction, so we
-    # detect direction geometrically instead of trusting the tuple order.
     start = line.coords[0]
     end   = line.coords[-1]
     d_start = (start[0] - endpoint_xy[0])**2 + (start[1] - endpoint_xy[1])**2
@@ -433,7 +412,6 @@ print(f"  H3 cells: {len(hex_gdf):,}")
 
 
 # step 3: PT stops, one mode at a time 
-
 print("\n[3/6] Loading public transport stops...")
 
 all_stops = []
@@ -473,10 +451,6 @@ if missing_modes:
 
 
 # step 4: stop counts and density per hex 
-#
-# This is a descriptive stop-density measure, NOT the PTOL output.
-# Useful as context but does not measure walking accessibility.
-
 print("\n[4/6] Stop counts and density per H3 cell...")
 
 stops_in_hex = gpd.sjoin(
@@ -526,8 +500,6 @@ if not os.path.isfile(WALK_NETWORK_FILE):
         "Generate the pedestrian network GraphML before running."
     )
 
-# Load OSM pedestrian graph, project to meters, add walk_time per edge,
-# then collapse to a simple undirected graph for Dijkstra.
 G_walk = load_graphml_compat(WALK_NETWORK_FILE)
 G_walk_projected = project_graph_compat(G_walk, CRS_METRIC)
 G_walk_projected = add_walk_time_to_edges(G_walk_projected)
